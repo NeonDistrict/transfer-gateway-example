@@ -112,6 +112,7 @@ contract ValidatorManagerContract is Ownable {
     }
   }
 
+  // ok. address _token is ... the contract address of the specific token
   function toggleToken(address _token) public onlyValidator {
     allowedTokens[_token] = !allowedTokens[_token];
   }
