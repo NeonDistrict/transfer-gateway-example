@@ -12,6 +12,7 @@ export default class EthTokens extends React.Component {
       sending: false,
       cardIds: [],
       fakeKittyIds: [],
+      neonDistrictIds: [],
       balance: 0,
       ethBalance: 0
     }
@@ -31,11 +32,15 @@ export default class EthTokens extends React.Component {
       // interesting. to start, NDCraftingBalance can get total items for a user but
       // ultimately going to want to get the balance of each TYPE of token.
 
+      // sarah randall
+    // const neonDistrictBalance = await this.props.ethNeonDistrictManager.getBalanceOfUserAsync(account);
+
     // great, we have one!
     console.log("fakeKittyBalance", fakeKittyBalance);
 
     let cardIds = []
     let fakeKittyIds  = []
+    let neonDistrictIds = []
 
     if (cardsBalance > 0) {
       cardIds = await this.props.ethCardManager.getTokensCardsOfUserAsync(account, cardsBalance)
@@ -47,6 +52,17 @@ export default class EthTokens extends React.Component {
       }
 
       console.log("fakeKittyIds after looping", fakeKittyIds)
+
+
+      // console.log("neonDistrictIds before looping", neonDistrictIds);
+
+      // debugger;
+      // if (neonDistrictBalance > 0) {
+      //   debugger;
+      // sarah randall
+        neonDistrictIds = await this.props.ethNeonDistrictManager.getNDAssetsOfUserAsync(account); // neonDistrictBalance
+      // }
+
     this.setState({ account, balance, mapping, cardIds, fakeKittyIds, ethBalance })
   }
 
@@ -154,7 +170,21 @@ export default class EthTokens extends React.Component {
               handleOnClick={() => this.sendToDAppChainFakeKitty(fkId)}
               />
           )
+      })
 
+      // to do // randall
+      console.log("this.state.neonDistrictIds", this.state.neonDistrictIds);
+      const neonDistrictItems = this.state.neonDistrictIds.map((id,idx) => {
+          const neonItemDef = this.props.ethNeonDistrictManager.getAssetWithId(id);
+          return(
+              <Card
+              title={`${neonItemDef.title} (ERC1155)`}
+              description={neonItemDef.description}
+              key={idx}
+              action="Send to DAppChain"
+              handleOnClick={() => this.sendToDAppChainFakeKitty(id)} // randall fix
+              />
+          )
       })
 
 
@@ -164,6 +194,8 @@ export default class EthTokens extends React.Component {
     const viewCards = cards.length > 0 ? cards : <p>No cards deposited on Ethereum Network yet</p>
 
     const viewFakeKitties = fakeKitties.length > 0 ? fakeKitties : <p>No FakeCrytoKitties deposited on Ethereum Network yet</p>
+
+    const viewNeonCrafting = neonDistrictItems.length > 0 ? neonDistrictItems : <p>No neon items yet</p>
 
     return !this.state.mapping ? (
       <p>Please sign your user first</p>
@@ -213,6 +245,22 @@ export default class EthTokens extends React.Component {
                 </span>
               </a>
             </li>
+
+            <li className="nav-item">
+              <a
+                className="nav-link"
+                id="ERC1155-tab"
+                data-toggle="tab"
+                href="#ERC1155"
+                role="tab"
+                aria-controls="ERC1155"
+                aria-selected="false">
+                ERC1155&nbsp;
+                <span className="badge badge-light">
+                  {(this.state.neonDistrictIds.length > 0) ? (this.state.neonDistrictIds.length) : 0}
+                </span>
+              </a>
+            </li>
           </ul>
 
           <div className="tab-content">
@@ -224,8 +272,10 @@ export default class EthTokens extends React.Component {
             </div>
             <div className="tab-pane" id="ERC721" role="tabpanel" aria-labelledby="ERC721-tab">
               {viewCards}
-      {viewFakeKitties}
-
+              {viewFakeKitties}
+            </div>
+            <div className="tab-pane" id="ERC1155" role="tabpanel" aria-labelledby="ERC1155-tab">
+              {viewNeonCrafting}
             </div>
           </div>
         </div>

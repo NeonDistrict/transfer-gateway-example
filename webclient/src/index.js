@@ -17,6 +17,9 @@ import DAppChainFakeKittyManager from './dc_managers/dc_fake_kitty_manager'
 import EthGatewayManager from './eth_managers/eth_gateway_manager'
 import DAppChainGatewayManager from './dc_managers/dc_gateway_manager'
 
+import EthNDCraftingManager from './eth_managers/eth_nd_crafting_manager'
+// sarah randall gateway manager?
+
 import EthTokenManager from './eth_managers/eth_token_manager'
 import DAppChainTokenManager from './dc_managers/dc_token_manager'
 
@@ -44,6 +47,9 @@ import GatewayTokens from './components/gateway_tokens'
   const dcFakeKittyManager = await DAppChainFakeKittyManager.createAsync()
   // end fake kitty stuff
 
+  const ethNeonDistrictManager = await EthNDCraftingManager.createAsync()
+  // sarah randall
+
   const ethTokenManager = await EthTokenManager.createAsync()
   const dcTokenManager = await DAppChainTokenManager.createAsync()
 
@@ -57,15 +63,16 @@ import GatewayTokens from './components/gateway_tokens'
       ethAccountManager={ethAccountManager}
       ethCardManager={ethCardManager}
       ethFakeKittyManager={ethFakeKittyManager}
+      ethNeonDistrictManager={ethNeonDistrictManager}
       dcAccountManager={dcAccountManager}
       dcCardManager={dcCardManager}
     />
   )
 
   const BuildHome = () => (
-    <Home 
-      ethAccountManager={ethAccountManager} 
-      dcAccountManager={dcAccountManager} 
+    <Home
+      ethAccountManager={ethAccountManager}
+      dcAccountManager={dcAccountManager}
      />
   )
 
@@ -77,6 +84,7 @@ import GatewayTokens from './components/gateway_tokens'
       dcAccountManager={dcAccountManager}
       ethFakeKittyManager={ethFakeKittyManager}
       dcFakeKittyManager={dcFakeKittyManager}
+      ethNeonDistrictManager={ethNeonDistrictManager}
       ethCardManager={ethCardManager}
       dcCardManager={dcCardManager}
       ethTokenManager={ethTokenManager}
@@ -92,6 +100,7 @@ import GatewayTokens from './components/gateway_tokens'
       dcCardManager={dcCardManager}
       ethFakeKittyManager={ethFakeKittyManager}
       dcFakeKittyManager={dcFakeKittyManager}
+      ethNeonDistrictManager={ethNeonDistrictManager}
       dcAccountManager={dcAccountManager}
       ethTokenManager={ethTokenManager}
       dcTokenManager={dcTokenManager}
@@ -107,6 +116,7 @@ import GatewayTokens from './components/gateway_tokens'
       ethCardManager={ethCardManager}
       ethFakeKittyManager={ethFakeKittyManager}
       dcFakeKittyManager={dcFakeKittyManager}
+      ethNeonDistrictManager={ethNeonDistrictManager}
       dcCardManager={dcCardManager}
       ethTokenManager={ethTokenManager}
       dcTokenManager={dcTokenManager}
