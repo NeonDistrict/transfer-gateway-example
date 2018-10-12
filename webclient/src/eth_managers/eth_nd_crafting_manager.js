@@ -1,14 +1,12 @@
 import Web3 from 'web3';
 
-// import * as fs from 'fs-web';
-
 export default class EthNDCraftingManager {
     static async createAsync(){
         const browserWeb3 = new Web3(window.web3.currentProvider);
         const networkId = await browserWeb3.eth.net.getId()
         const contract = new browserWeb3.eth.Contract(
             ND_CRAFTING_JSON.abi,
-            // DC_ND_CRAFTING_JSON.networks[networkId].address
+            // DC_ND_CRAFTING_JSON.networks[networkId].address // sarah randall
         )
         // console.log("contract", contract);
         // console.log("NeonDistrictCrafting", NeonDistrictCrafting);
@@ -18,11 +16,6 @@ export default class EthNDCraftingManager {
 
     constructor(contract){
         this._contract = contract;
-    }
-
-    async getAssetWithId(id){
-        // await contract.
-        // fetch asset here
     }
 
     async getAssetWithId(id){

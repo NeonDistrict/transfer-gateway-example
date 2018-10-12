@@ -57,32 +57,34 @@ module.exports = (deployer, _network, accounts) => {
     await gameTokenInstance.transfer(user, 100)
 
     await gatewayInstance.toggleToken(fakeCrytoKittyInstance.address, {from: validator}); // what is this
-    await fakeCrytoKittyInstance.register(user); 
+    await fakeCrytoKittyInstance.register(user);
 
     // create an asset type (or two) and mint to the user
     // the gatewayInstance will now accept tokens minted from this contract.
     await gatewayInstance.toggleToken(NDCraftingInstance.address, {from: validator});
 
     // NOTE: something to note for future devs/future me:
-    // * right now I'm minting a hilt on the eth chain (here), to try to move it to the loom chain. 
+    // * right now I'm minting a hilt on the eth chain (here), to try to move it to the loom chain.
     // (This is b/c we don't yet know how to start on the loom chain: ultimately we'll mint them on the loom chain
     // and also likely not mint them IN THE MIGRATION FILE.
-    // * but in our world, a hilt will likely be made up of component assets (wood, metal, whatever). 
-    // so when we transfer a composite asset like that from one chain to the other, 
+    // * but in our world, a hilt will likely be made up of component assets (wood, metal, whatever).
+    // so when we transfer a composite asset like that from one chain to the other,
     // we need to be sure we're transferring all it's composite elements
     // (However we decide to do that. The technical implementation will flow from the game/biz needs)
     // * for now, I'm not going to go down that rabbit hole, but this is an important consideration as the work progresses & develops
       //
       //
-    // this nested event watching is not my favorite syntax. Randall -- is there a better way to do this? 
+    // this nested event watching is not my favorite syntax. Randall -- is there a better way to do this?
     // not pressing right now b/c minting assets in the migration is just a placeholder
       // to use the UI, etc.  so this code is all in service of this prototype.
     NDCraftingInstance.assetClassCreated().watch ( async (err, response) => {  //set up listener for the AuctionClosed Event
         NDCraftingInstance.NFTMinted().watch( async (err, response) => {
             // this is the id of the SPECIFIC item the user now owns
             let whichNftId = response.args._whichNfi;
-            // TBD if writing it out like this (and then reading it in as a BigNumber will work), 
+            // TBD if writing it out like this (and then reading it in as a BigNumber will work),
             // will see!
+            writeFileSync('../example-nft-whichId', 'whichNftId');
+            writeFileSync('../webclient/example-nft-whichId', 'test1');
             writeFileSync('../example-nft-whichId', whichNftId);
         })
         // NOTE to self, do I have a typeCounter to typeId mapping in NDCrafting? It would help!
@@ -110,6 +112,6 @@ module.exports = (deployer, _network, accounts) => {
     writeFileSync('../nd_eth_address', NDCraftingInstance.address);
     writeFileSync('../nd_tx_hash', NDCraftingContract.transactionHash);
 
-       
+
   })
 }
