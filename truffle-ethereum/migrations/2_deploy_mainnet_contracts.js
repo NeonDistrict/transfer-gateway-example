@@ -83,13 +83,20 @@ module.exports = (deployer, _network, accounts) => {
             let whichNftId = response.args._whichNfi;
             // TBD if writing it out like this (and then reading it in as a BigNumber will work),
             // will see!
-            writeFileSync('../example-nft-whichId', 'whichNftId');
-            writeFileSync('../webclient/example-nft-whichId', 'test1');
             writeFileSync('../example-nft-whichId', whichNftId);
         })
         // NOTE to self, do I have a typeCounter to typeId mapping in NDCrafting? It would help!
         // this is the specific id of the newly created asset:
         let nftTypeId1 = response.args._typeId;
+
+        var ndItem = {
+          id: nftTypeId1
+        }
+
+        let craftingItem = JSON.stringify(ndItem)
+        // "export default = [{}, {'id': 'q213'}]"
+        writeFileSync('../webclient/src/example-nft-typeId.json', 'craftingItem');
+        writeFileSync('../webclient/example-nft-typeId.json', craftingItem);
         writeFileSync('../example-nft-typeId', nftTypeId1);
         try{
             // now let's mint one of these to our user. This way we will be able to see it in the UI.
