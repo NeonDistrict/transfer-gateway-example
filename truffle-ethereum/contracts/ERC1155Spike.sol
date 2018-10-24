@@ -95,12 +95,12 @@ contract ERC1155Spike is Ownable{
 
 
         if(_isNFI){
-             //| is a bitwise OR, not a boolean OR
-             //this results in always having the leftmost bit (most significant bit) set to 1
-             //because TYPE_NF_BIT is 10000.....0, and OR-ing anything with 1, gives you 1
-             //result is that this number is much "bigger" than the _typeId if not _isNFI
-             //it is 255 places w/a 1 in its MSB
-             //whereas the other is 255 places but left-padded w/zeros until you get to the number itself
+            // | is a bitwise OR, not a boolean OR
+            // this results in always having the leftmost bit (most significant bit) set to 1
+            // because TYPE_NF_BIT is 10000.....0, and OR-ing anything with 1, gives you 1
+            // result is that this number is much "bigger" than the _typeId if not _isNFI
+            // it is 255 places w/a 1 in its MSB
+            // whereas the other is 255 places but left-padded w/zeros until you get to the number itself
             _typeId = _typeId | TYPE_NF_BIT;
         }
 
@@ -240,7 +240,6 @@ contract ERC1155Spike is Ownable{
     }
 
 
-    // this transfers only from the  msg.sender
     function transfer(address _to,
                       uint256[] _ids,
                       uint256[] _values)
@@ -360,18 +359,6 @@ contract ERC1155Spike is Ownable{
         }
 
         assets[_typeId].totalSupply = assets[_typeId].totalSupply.add(totalValue);
-    }
-
-    // sarah randall
-    /**
-     * @dev Gets the owner of the specified token ID
-     * @param tokenId uint256 ID of the token to query the owner of
-     * @return owner address currently marked as the owner of the given token ID
-     */
-    function ownerOf(uint256 tokenId) public view returns (address) {
-      address owner = _tokenOwner[tokenId];
-      require(owner != address(0));
-      return owner;
     }
 
     function ownerOf(uint256 _whichId)

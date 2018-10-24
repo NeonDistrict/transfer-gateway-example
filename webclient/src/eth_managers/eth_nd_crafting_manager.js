@@ -23,10 +23,11 @@ export default class EthNDCraftingManager {
       // we just want to get information about the asset here
       // use the big number library to convert
       // new Bignumber(id)
-      // const assetId = id.toNumber();
+      debugger
+      const num = new BigNumber(id);
+
       debugger;
-      // const num = id.ToNumber() // / Math.pow(10, tokenDecimals)
-      const asset = await this._contract.methods.getAssetType(id).call() //{from: address}
+      const asset = await this._contract.methods.getAssetType(num).call() //{from: address}
       debugger;
 
       return asset;
