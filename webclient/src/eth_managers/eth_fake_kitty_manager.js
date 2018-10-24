@@ -58,4 +58,3 @@ export default class EthFakeKittyManager {
         .send({from:address, gas: '219362'})
     }
 }
-

@@ -32,8 +32,7 @@ export default class EthTokens extends React.Component {
       // interesting. to start, NDCraftingBalance can get total items for a user but
       // ultimately going to want to get the balance of each TYPE of token.
 
-      // sarah randall
-    // const neonDistrictBalance = await this.props.ethNeonDistrictManager.getBalanceOfUserAsync(account);
+      // sarah randall    const neonDistrictBalance = await this.props.ethNeonDistrictManager.getBalanceOfUserAsync(account, typeId);
 
     // great, we have one!
     console.log("fakeKittyBalance", fakeKittyBalance);
@@ -53,17 +52,13 @@ export default class EthTokens extends React.Component {
 
       console.log("fakeKittyIds after looping", fakeKittyIds)
 
-
-      // console.log("neonDistrictIds before looping", neonDistrictIds);
-
-      // debugger;
+      console.log("neonDistrictIds before looping", neonDistrictIds);
       // if (neonDistrictBalance > 0) {
-      //   debugger;
       // sarah randall
         neonDistrictIds = await this.props.ethNeonDistrictManager.getNDAssetsOfUserAsync(account); // neonDistrictBalance
       // }
 
-    this.setState({ account, balance, mapping, cardIds, fakeKittyIds, ethBalance })
+    this.setState({ account, balance, mapping, cardIds, fakeKittyIds, ethBalance, neonDistrictIds })
   }
 
   async sendToDAppChainToken(amount) {
@@ -172,10 +167,10 @@ export default class EthTokens extends React.Component {
           )
       })
 
-      // to do // randall
       console.log("this.state.neonDistrictIds", this.state.neonDistrictIds);
-      const neonDistrictItems = this.state.neonDistrictIds.map((id,idx) => {
-          const neonItemDef = this.props.ethNeonDistrictManager.getAssetWithId(id);
+      const neonDistrictItems = this.state.neonDistrictIds.map((id, idx) => {
+          const neonItemDef = this.props.ethNeonDistrictManager.getAssetWithId(id, idx);
+          debugger;
           return(
               <Card
               title={`${neonItemDef.title} (ERC1155)`}

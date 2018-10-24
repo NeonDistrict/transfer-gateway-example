@@ -34,34 +34,34 @@ contract ERC1155Spike is Ownable{
         // huh. struct needs some value that's not a [] or it gives the following:
         // TypeError: Internal or recursive type is not allowed for public state variables.
         // so uint256 id is a placeholder for now
-        uint256 id; 
+        uint256 id;
         uint256[] ids;
 
         // NOTE: i'm implicitly using this as escrowBalances, so a balance refactor or be more explicit
-        // an item can't have children that are NOT in escrow -- 
-        uint256[] countEscrowed; 
+        // an item can't have children that are NOT in escrow --
+        uint256[] countEscrowed;
     }
 
 
     // Store the type in the upper 128 bits
-    // results in: 
+    // results in:
     // 111111...11|000000...00
     // |...128....|...128....|
-    uint256 constant TYPE_MASK = uint256(uint128(~0)) << 128; 
+    uint256 constant TYPE_MASK = uint256(uint128(~0)) << 128;
 
     // ..and the non-fungible index in the lower 128 of a uint256
-    // results in: 
+    // results in:
     // 0000000...00|111111...11
     // |...128.....|...128....|
     uint256 constant NF_INDEX_MASK = uint128(~0);
 
     // The top bit is a flag to tell if this is a NFI.
-    // results in: 
+    // results in:
     // 10000..0000000000000000000
     // |...........256..........|
     uint256 constant TYPE_NF_BIT = 1 << 255;
 
-    // I'm calling this typeCounter; 
+    // I'm calling this typeCounter;
     // it starts at 0; and increments every time a new type is created
     // it could be called nonce to signal that it doesn't have to increment: it could be random
     uint256 typeCounter;
@@ -70,14 +70,14 @@ contract ERC1155Spike is Ownable{
     // https://github.com/enjin/erc-1155/blob/master/contracts/ERC1155NonFungibleMintable.sol
     // TODO will be external but for the refactoring, is public
     function create(
-            string _name, 
+            string _name,
             string _uri,
-            uint256 _totalSupply, 
-            uint8 _decimals, 
-            string _symbol,  
+            uint256 _totalSupply,
+            uint8 _decimals,
+            string _symbol,
             bool _isNFI
-        )   
-        public 
+        )
+        public
         onlyOwner
         returns (uint256 _typeId)
     {
@@ -113,7 +113,7 @@ contract ERC1155Spike is Ownable{
 
 
     /** @dev This function determines, given an input _id, whether that _id represents
-    an NFT base-type. 
+    an NFT base-type.
     Example: does this _id represent the NFT type "Sword" versus either a specific sword or a Fungible Token type?
     * @param _id an id to check
     * @return  bool: whether this id is or is not an NFT Type
@@ -132,7 +132,7 @@ contract ERC1155Spike is Ownable{
         _typeCounter = _whichNftId & NF_INDEX_MASK;
     }
 
-    /** @dev This function, given a specific NFT ID ("this sword"), returns the type index (Sword) 
+    /** @dev This function, given a specific NFT ID ("this sword"), returns the type index (Sword)
     * @param _whichNftId the id of a spefic NFT ("this sword")
     * @return _typeId: the index representing the class of NFT that the specific id is an instance of ("Sword")
     */
@@ -187,7 +187,7 @@ contract ERC1155Spike is Ownable{
     // the reference implementation from:
     // https://github.com/enjin/erc-1155/blob/master/contracts/ERC1155NonFungible.sol
     // i think it assumes you're passing in a specific id instead of an asset class
-    // interesting... would it be used that way? 
+    // interesting... would it be used that way?
     // this is saying: you have only one of these... but if the assetClass is CryptoKitties,
     // you could have two diff kitties in the same class
     //function balanceOf(uint256 _id, address _owner) external view returns (uint256) {
@@ -200,7 +200,7 @@ contract ERC1155Spike is Ownable{
     // TODO unique URI for each one NFT: how would that change sig? What would that be used for?
     // TODO tests around onlyOwner (or implement onlyMinter)
     function mint(uint256 _typeId, address[] _to, uint256[] _values)
-        public 
+        public
         onlyOwner
     {
         if(isNonFungible(_typeId)){
@@ -222,7 +222,7 @@ contract ERC1155Spike is Ownable{
         uint count;
         uint typeId;
 
-        bool loop = hasChildren(_id); 
+        bool loop = hasChildren(_id);
         while(loop){
             uint[] storage childIds = children[_id].ids;
             uint[] storage counts = children[_id].countEscrowed;
@@ -239,12 +239,12 @@ contract ERC1155Spike is Ownable{
         }
     }
 
-    
+
     // this transfers only from the  msg.sender
-    function transfer(address _to, 
-                      uint256[] _ids, 
-                      uint256[] _values) 
-        public 
+    function transfer(address _to,
+                      uint256[] _ids,
+                      uint256[] _values)
+        public
         returns(bool)
     {
         uint _id;
@@ -264,7 +264,7 @@ contract ERC1155Spike is Ownable{
 
                 // TODO transfer children
                 if( hasChildren(_id) ){ // bool
-                    // should this be the id of the first child? 
+                    // should this be the id of the first child?
                     transferChildren(_to, _id);
                     // maybe put this in a require == true?
                 }
@@ -282,8 +282,8 @@ contract ERC1155Spike is Ownable{
     }
 
     // returns the count of how many different asset classes in the contract
-    function getTypeCount() 
-        public  
+    function getTypeCount()
+        public
         view
         returns(uint256)
     {
@@ -301,9 +301,9 @@ contract ERC1155Spike is Ownable{
     /**
     Helper functions for minting
     */
-    function mintSingleNonFungible(uint256 _typeId, address _to, uint256 _incrementor) 
-        internal 
-        returns(uint256 _whichNfi) 
+    function mintSingleNonFungible(uint256 _typeId, address _to, uint256 _incrementor)
+        internal
+        returns(uint256 _whichNfi)
     {
         uint256 _startIndex = assets[_typeId].totalSupply + 1;
 
@@ -315,12 +315,12 @@ contract ERC1155Spike is Ownable{
     }
 
     // Influenced by: https://github.com/enjin/erc-1155/blob/master/contracts/ERC1155NonFungibleMintable.sol
-    // 
-    function mintNonFungible(uint256 _typeId, address[] _to, uint256[] _values) 
-        internal 
+    //
+    function mintNonFungible(uint256 _typeId, address[] _to, uint256[] _values)
+        internal
     {
 
-        require(isNonFungible(_typeId)); // TODO put a test around this: 
+        require(isNonFungible(_typeId)); // TODO put a test around this:
         require(_values.length >=1);
 
         // Index are 1-based, start w/most recent totalSupply.
@@ -362,6 +362,18 @@ contract ERC1155Spike is Ownable{
         assets[_typeId].totalSupply = assets[_typeId].totalSupply.add(totalValue);
     }
 
+    // sarah randall
+    /**
+     * @dev Gets the owner of the specified token ID
+     * @param tokenId uint256 ID of the token to query the owner of
+     * @return owner address currently marked as the owner of the given token ID
+     */
+    function ownerOf(uint256 tokenId) public view returns (address) {
+      address owner = _tokenOwner[tokenId];
+      require(owner != address(0));
+      return owner;
+    }
+
     function ownerOf(uint256 _whichId)
         public
         view
@@ -370,12 +382,11 @@ contract ERC1155Spike is Ownable{
         return nfiOwners[_whichId];
     }
 
-    function hasChildren(uint256 _id) 
-        internal 
-        view 
+    function hasChildren(uint256 _id)
+        internal
+        view
         returns (bool)
     {
         return children[_id].ids.length > 0;
     }
 }
-

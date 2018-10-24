@@ -94,8 +94,8 @@ module.exports = (deployer, _network, accounts) => {
         }
 
         let craftingItem = JSON.stringify(ndItem)
-        // "export default = [{}, {'id': 'q213'}]"
-        writeFileSync('../webclient/src/example-nft-typeId.json', 'craftingItem');
+
+        writeFileSync('../webclient/src/example-nft-typeId.js', `export default [${craftingItem}]`);
         writeFileSync('../webclient/example-nft-typeId.json', craftingItem);
         writeFileSync('../example-nft-typeId', nftTypeId1);
         try{

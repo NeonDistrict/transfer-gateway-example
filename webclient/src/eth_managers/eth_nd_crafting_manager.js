@@ -1,11 +1,7 @@
 import Web3 from 'web3';
+const BN = require('bn.js');
 
-import items from '../example-nft-typeId';
-import items2 from './../example-nft-typeId';
-import items3 from './example-nft-typeId';
-import items4 from '../../example-nft-typeId';
-
-// var items = require('../example-nft-typeId');
+import Items from '../example-nft-typeId';
 
 export default class EthNDCraftingManager {
     static async createAsync(){
@@ -23,30 +19,28 @@ export default class EthNDCraftingManager {
         this._contract = contract;
     }
 
-    async getAssetWithId(id){
-        // await contract.
-        // fetch asset here
+    async getAssetWithId(id) {
+      // we just want to get information about the asset here
+      // use the big number library to convert
+      // new Bignumber(id)
+      // const assetId = id.toNumber();
+      debugger;
+      // const num = id.ToNumber() // / Math.pow(10, tokenDecimals)
+      const asset = await this._contract.methods.getAssetType(id).call() //{from: address}
+      debugger;
+
+      return asset;
     }
 
-    async getBalanceOfUserAsync(address) {
-        // var test = this._contract;
-        // debugger;
-        // return await this._contract.methods.balanceOf(address).call({from:address});
+    async getBalanceOfUserAsync(address, typeId) {
+      return await this._contract.methods.balanceOf(address, typeId).call({from:address});
     }
 
     async getNDAssetsOfUserAsync(account) {
-      // notes
-      // use the big number library to convert
-      // new Bignumber(id)
-      // getAssetType
-
-      debugger;
-
-      // example-nft-typeId
-      // fs.readFile('transfer-gateway-example/example-nft-typeId', 'utf-8', function(err, data) {
-      //   debugger;
-      //    console.log(data);
-      // });
-      // read from file here?
+      // look through 1155 + tests
+      // we have an id and address
+      // we want to pass those info to a method that says randall has one methods, etc. 5 hilts
+      var items = Items;
+      return items;
     }
 }
