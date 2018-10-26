@@ -173,11 +173,11 @@ export default class EthTokens extends React.Component {
           debugger;
           return(
               <Card
-              title={`${neonItemDef.title} (ERC1155)`}
-              description={neonItemDef.description}
+              title={`${neonItemDef.name} (ERC1155)`}
+              description={neonItemDef.name}
               key={idx}
               action="Send to DAppChain"
-              handleOnClick={() => this.sendToDAppChainFakeKitty(id)} // randall fix
+              handleOnClick={() => this.sendToDAppChain(id)}
               />
           )
       })

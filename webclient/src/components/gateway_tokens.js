@@ -60,11 +60,11 @@ export default class GatewayTokens extends React.Component {
               // how to check which one -- by name or type?
               // i know how to do it hard-coded, but
               // huh if this is erc721s
-              // we need to be more specific 
+              // we need to be more specific
               // ex. which one or do a check
               // on it's name
               //
-              // TODO write a mapper class with all the contract abis & addresses. 
+              // TODO write a mapper class with all the contract abis & addresses.
               // but for now.... we know we have two kinds
               // also TODO --- this looks like it just handles one at a time
               console.log("hey, we're with tokenKind 2");

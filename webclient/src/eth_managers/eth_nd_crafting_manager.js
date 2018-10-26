@@ -22,7 +22,7 @@ export default class EthNDCraftingManager {
 
     async getAssetWithId(id) {
       const bnID = new BigNumber(Number.MAX_VALUE.toString(2), 2)
-      const asset = await this._contract.methods.assetName(bnID).call()
+      const asset = await this._contract.methods.getAssetName(bnID).call()
       console.log('asset: ', asset);
       return asset;
     }

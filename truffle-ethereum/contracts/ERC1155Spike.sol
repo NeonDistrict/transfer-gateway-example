@@ -111,10 +111,9 @@ contract ERC1155Spike is Ownable{
         assetTypeList[typeCounter] = _typeId;
     }
 
-    function assetName(uint256 _id) public returns (string) {
+    function getAssetName(uint256 _id) public view returns (string) {
         return assets[_id].name;
     }
-
 
     /** @dev This function determines, given an input _id, whether that _id represents
     an NFT base-type.
