@@ -1,5 +1,5 @@
 import Web3 from 'web3';
-const BN = require('bn.js');
+var BigNumber = require('bignumber.js');
 
 import Items from '../example-nft-typeId';
 
@@ -9,6 +9,7 @@ export default class EthNDCraftingManager {
         const networkId = await browserWeb3.eth.net.getId()
         const contract = new browserWeb3.eth.Contract(
             ND_CRAFTING_JSON.abi,
+            ND_CRAFTING_JSON.networks[networkId].address
             // DC_ND_CRAFTING_JSON.networks[networkId].address
         )
 
@@ -20,16 +21,11 @@ export default class EthNDCraftingManager {
     }
 
     async getAssetWithId(id) {
-      // we just want to get information about the asset here
-      // use the big number library to convert
-      // new Bignumber(id)
-      debugger
-      const num = new BigNumber(id);
-
-      debugger;
+      const num = new BigNumber(Number.MAX_VALUE.toString(2), 2)
+      // debugger;
+      // console.log(this._contract);
       const asset = await this._contract.methods.getAssetType(num).call() //{from: address}
-      debugger;
-
+      console.log('asset: ', asset);
       return asset;
     }
 
@@ -38,7 +34,6 @@ export default class EthNDCraftingManager {
     }
 
     async getNDAssetsOfUserAsync(account) {
-      // look through 1155 + tests
       // we have an id and address
       // we want to pass those info to a method that says randall has one methods, etc. 5 hilts
       var items = Items;

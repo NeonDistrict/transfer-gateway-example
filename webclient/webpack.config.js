@@ -11,6 +11,7 @@ const fakeKittyJSON = require('../truffle-ethereum/build/contracts/FakeCryptoKit
 const dcFakeKittyJSON = require('../truffle-dappchain/build/contracts/FakeCryptoKittyDappChain.json')
 
 const NDCraftingJSON = require('../truffle-ethereum/build/contracts/NeonDistrictCrafting.json');
+const dcNDCraftingJSON = require('../truffle-dappchain/build/contracts/NeonDistrictCraftingDappChain.json');
 
 module.exports = {
   context: __dirname + '/src',
@@ -41,7 +42,8 @@ module.exports = {
       GATEWAY_JSON: JSON.stringify(gatewayJSON),
       FAKE_CRYPTO_KITTY_JSON: JSON.stringify(fakeKittyJSON),
       DC_FAKE_CRYPTO_KITTY_JSON: JSON.stringify(dcFakeKittyJSON),
-      ND_CRAFTING_JSON: JSON.stringify(NDCraftingJSON)
+      ND_CRAFTING_JSON: JSON.stringify(NDCraftingJSON),
+      DC_ND_CRAFTING_JSON: JSON.stringify(dcNDCraftingJSON)
     })
   ],
   optimization: {
