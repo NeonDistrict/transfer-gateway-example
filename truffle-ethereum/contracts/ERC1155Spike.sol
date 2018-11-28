@@ -12,6 +12,7 @@ contract ERC1155Spike is Ownable{
 
     mapping (uint256 => address) public nfiOwners;
     mapping (address => uint256[]) public ownerNfis;
+    mapping (uint256 => bool) public nfiEscrow;
 
     mapping (uint256 => AssetClass) public assets;
     mapping (uint256 => Children) public children;
@@ -391,6 +392,14 @@ contract ERC1155Spike is Ownable{
         returns(uint256[])
     {
         return ownerNfis[_addr];
+    }
+
+    function inEscrow(uint256 _id)
+        public
+        view
+        returns(bool)
+    {
+        return nfiEscrow[_id];
     }
 
     function hasChildren(uint256 _id)
