@@ -11,7 +11,6 @@ contract ERC1155Spike is Ownable{
     using SafeMath for uint256;
 
     mapping (uint256 => address) public nfiOwners;
-    mapping (address => uint256[]) public ownerNfis;
     mapping (uint256 => bool) public nfiEscrow;
 
     mapping (uint256 => AssetClass) public assets;
@@ -238,10 +237,6 @@ contract ERC1155Spike is Ownable{
 
                 nfiOwners[childId] = _to;
 
-                // Need to remove the NFI from the previous owner and add to the new owner's list
-                ownerNfis[msg.sender] = removeByValue(ownerNfis[msg.sender], childId);
-                ownerNfis[_to].push(childId);
-
                 assets[typeId].escrowBalances[msg.sender] = assets[typeId].escrowBalances[msg.sender].sub(count);
                 assets[typeId].escrowBalances[_to] = assets[typeId].escrowBalances[_to].add(count);
             }
@@ -271,10 +266,6 @@ contract ERC1155Spike is Ownable{
                 require(nfiOwners[_id] == msg.sender);
                 nfiOwners[_id] = _to;
 
-                // Need to remove the NFI from the previous owner and add to the new owner's list
-                ownerNfis[msg.sender] = removeByValue(ownerNfis[msg.sender], _id);
-                ownerNfis[_to].push(_id);
-
                 // TODO transfer children
                 if( hasChildren(_id) ){ // bool
                     // should this be the id of the first child?
@@ -290,7 +281,6 @@ contract ERC1155Spike is Ownable{
             assets[_typeId].balances[_to] = _value.add(assets[_typeId].balances[_to]);
 
             emit Transfer(msg.sender, _to, _id, _value);
-
         }
     }
 
@@ -323,7 +313,6 @@ contract ERC1155Spike is Ownable{
         _whichNfi = _typeId | (_startIndex + _incrementor);
 
         nfiOwners[_whichNfi] = _to;
-        ownerNfis[_to].push(_whichNfi);
 
         assets[_typeId].balances[_to] = assets[_typeId].balances[_to].add(1);
         emit NFTMinted(_typeId, _whichNfi, _to);
@@ -386,14 +375,6 @@ contract ERC1155Spike is Ownable{
         return nfiOwners[_whichId];
     }
 
-    function ownerHas(address _addr)
-        public
-        view
-        returns(uint256[])
-    {
-        return ownerNfis[_addr];
-    }
-
     function inEscrow(uint256 _id)
         public
         view
@@ -408,33 +389,5 @@ contract ERC1155Spike is Ownable{
         returns (bool)
     {
         return children[_id].ids.length > 0;
-    }
-
-    /**
-     * Original here: https://github.com/raineorshine/solidity-by-example/blob/master/remove-from-array.sol
-     **/
-    function findByValue(uint256[] values, uint256 value) internal returns (uint256) {
-        uint256 i = 0;
-        while (values[i] != value && i < values.length) {
-            i++;
-        }
-        return i;
-    }
-
-    function removeByValue(uint256[] storage values, uint256 value) internal returns (uint256[]) {
-        // Make sure that we have a valid index
-        uint256 i = findByValue(values, value);
-        if (i >= values.length) {
-            return values;
-        }
-
-        // Move the last item into the removed value's spot
-        values[i] = values[values.length-1];
-
-        // Delete the last item
-        delete values[values.length-1];
-        values.length--;
-
-        return values;
     }
 }
