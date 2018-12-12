@@ -264,6 +264,8 @@ contract ERC1155Spike is Ownable{
             if (isNonFungible(_id)) {
                 require(_value == 1);
                 require(nfiOwners[_id] == msg.sender);
+                require(nfiEscrow[_id] == false);
+
                 nfiOwners[_id] = _to;
 
                 // TODO transfer children
