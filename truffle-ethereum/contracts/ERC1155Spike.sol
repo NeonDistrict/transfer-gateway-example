@@ -20,11 +20,13 @@ contract ERC1155Spike is Ownable{
 
     event assetClassCreated(string _name, uint256 _typeCounter, uint256 _typeId, bool _isNFI);
     event NFTMinted(uint256 _typeId, uint256 _whichNfi, address _to);
+    event NFTDeleted(uint256 _typeId, uint256 _whichNfi, address _to);
     event Transfer(address indexed _from, address indexed _to, uint256 indexed _id, uint256 _value);
 
     struct AssetClass{
         string name;
         uint256 totalSupply;
+        uint256 currentIndex;
         uint8 decimals;
         string symbol;
         mapping (address => uint256) balances; // owner => int
@@ -109,6 +111,7 @@ contract ERC1155Spike is Ownable{
 
         assets[_typeId].name = _name;
         assets[_typeId].totalSupply = _totalSupply;
+        assets[_typeId].currentIndex = _totalSupply;
         assetTypeList[typeCounter] = _typeId;
     }
 
@@ -310,7 +313,7 @@ contract ERC1155Spike is Ownable{
         internal
         returns(uint256 _whichNfi)
     {
-        uint256 _startIndex = assets[_typeId].totalSupply + 1;
+        uint256 _startIndex = assets[_typeId].currentIndex + 1;
 
         _whichNfi = _typeId | (_startIndex + _incrementor);
 
@@ -319,6 +322,21 @@ contract ERC1155Spike is Ownable{
         assets[_typeId].balances[_to] = assets[_typeId].balances[_to].add(1);
         emit NFTMinted(_typeId, _whichNfi, _to);
         assets[_typeId].totalSupply = assets[_typeId].totalSupply.add(1);
+        assets[_typeId].currentIndex = assets[_typeId].currentIndex.add(1);
+    }
+
+    function deleteSingleNonFungible(uint256 _whichNfi) internal returns(bool)
+    {
+        address _to = nfiOwners[_whichNfi];
+        delete nfiOwners[_whichNfi];
+
+        uint256 _typeId = typeIdFor(_whichNfi);
+
+        assets[_typeId].balances[_to] = assets[_typeId].balances[_to].sub(1);
+        assets[_typeId].totalSupply = assets[_typeId].totalSupply.sub(1);
+
+        emit NFTDeleted(_typeId, _whichNfi, _to);
+        return true;
     }
 
     // Influenced by: https://github.com/enjin/erc-1155/blob/master/contracts/ERC1155NonFungibleMintable.sol
@@ -329,9 +347,6 @@ contract ERC1155Spike is Ownable{
 
         require(isNonFungible(_typeId)); // TODO put a test around this:
         require(_values.length >=1);
-
-        // Index are 1-based, start w/most recent totalSupply.
-        uint256 _startIndex = assets[_typeId].totalSupply + 1;
 
         // for each address
         for (uint256 i = 0; i < _to.length; ++i) {
@@ -367,6 +382,7 @@ contract ERC1155Spike is Ownable{
         }
 
         assets[_typeId].totalSupply = assets[_typeId].totalSupply.add(totalValue);
+        assets[_typeId].currentIndex = assets[_typeId].currentIndex.add(totalValue);
     }
 
     function ownerOf(uint256 _whichId)
