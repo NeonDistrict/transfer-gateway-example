@@ -12,6 +12,7 @@ contract ERC1155Spike is Ownable{
 
     mapping (uint256 => address) public nfiOwners;
     mapping (uint256 => bool) public nfiEscrow;
+    mapping (uint256 => bool) public nfiLock;
 
     mapping (uint256 => AssetClass) public assets;
     mapping (uint256 => Children) public children;
@@ -22,6 +23,8 @@ contract ERC1155Spike is Ownable{
     event NFTMinted(uint256 _typeId, uint256 _whichNfi, address _to);
     event NFTDeleted(uint256 _typeId, uint256 _whichNfi, address _to);
     event Transfer(address indexed _from, address indexed _to, uint256 indexed _id, uint256 _value);
+    event LockAsset(address _owner, uint256 _assetId);
+    event UnlockAsset(address _owner, uint256 _assetId);
 
     struct AssetClass{
         string name;
@@ -238,6 +241,10 @@ contract ERC1155Spike is Ownable{
                 count = counts[i];
                 typeId = typeIdFor(childId);
 
+                if (isNonFungible(childId)) {
+                    require(!isLocked(childId));
+                }
+
                 nfiOwners[childId] = _to;
 
                 assets[typeId].escrowBalances[msg.sender] = assets[typeId].escrowBalances[msg.sender].sub(count);
@@ -268,6 +275,7 @@ contract ERC1155Spike is Ownable{
                 require(_value == 1);
                 require(nfiOwners[_id] == msg.sender);
                 require(nfiEscrow[_id] == false);
+                require(!isLocked(_id));
 
                 nfiOwners[_id] = _to;
 
@@ -327,6 +335,8 @@ contract ERC1155Spike is Ownable{
 
     function deleteSingleNonFungible(uint256 _whichNfi) internal returns(bool)
     {
+        require(!isLocked(_whichNfi));
+
         address _to = nfiOwners[_whichNfi];
         delete nfiOwners[_whichNfi];
 
@@ -344,7 +354,6 @@ contract ERC1155Spike is Ownable{
     function mintNonFungible(uint256 _typeId, address[] _to, uint256[] _values)
         internal
     {
-
         require(isNonFungible(_typeId)); // TODO put a test around this:
         require(_values.length >=1);
 
@@ -385,6 +394,33 @@ contract ERC1155Spike is Ownable{
         assets[_typeId].currentIndex = assets[_typeId].currentIndex.add(totalValue);
     }
 
+    function lock(uint256[] _ids) external
+    {
+        for (uint256 i = 0; i < _ids.length; i++) {
+            // Require this is a non-fungible, not locked, & owned by sender
+            require(isNonFungible(_ids[i]));
+            require(!isLocked(_ids[i]));
+            require(nfiOwners[_ids[i]] == msg.sender);
+
+            // Put the non-fungible into escrow
+            nfiLock[_ids[i]] = true;
+            emit LockAsset(msg.sender, _ids[i]);
+        }
+    }
+
+    function unlock(uint[] _ids) public onlyOwner
+    {
+        for (uint256 i = 0; i < _ids.length; i++) {
+            // Require this is a non-fungible and in escrow
+            require(isNonFungible(_ids[i]));
+            require(isLocked(_ids[i]));
+
+            // Remove the non-fungible from escrow
+            delete nfiLock[_ids[i]];
+            emit UnlockAsset(nfiOwners[_ids[i]], _ids[i]);
+        }
+    }
+
     function ownerOf(uint256 _whichId)
         public
         view
@@ -399,6 +435,14 @@ contract ERC1155Spike is Ownable{
         returns(bool)
     {
         return nfiEscrow[_id];
+    }
+
+    function isLocked(uint256 _id)
+        public
+        view
+        returns(bool)
+    {
+        return nfiLock[_id];
     }
 
     function hasChildren(uint256 _id)
