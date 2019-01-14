@@ -14,10 +14,18 @@ contract ERC1155Spike is Ownable{
     mapping (uint256 => bool) public nfiEscrow;
     mapping (uint256 => bool) public nfiLock;
 
+    // NFI Equipment mappings
+    mapping (uint256 => uint256) public nfiEquipped;
+    mapping (uint256 => mapping (uint256 => uint256)) public nfiEquipment;
+
+    // Class Equipment Mappings
+    mapping (uint256 => uint256) public classEquipmentSlots;
+    mapping (uint256 => uint256) public classEquipmentSlotType;
+
     mapping (uint256 => AssetClass) public assets;
     mapping (uint256 => Children) public children;
-    mapping (uint256 => uint256) public assetTypeList; // assetTypeIndex (0,1,2...n) to assetIndex (0,1,10000,10909)..
-    mapping (uint256 => uint256) public parents; // assetId => parentAssetId
+    mapping (uint256 => uint256) public assetTypeList;
+    // assetTypeIndex (0,1,2...n) to assetIndex (0,1,10000,10909)..
 
     event assetClassCreated(string _name, uint256 _typeCounter, uint256 _typeId, bool _isNFI);
     event NFTMinted(uint256 _typeId, uint256 _whichNfi, address _to);
@@ -70,7 +78,7 @@ contract ERC1155Spike is Ownable{
     // I'm calling this typeCounter;
     // it starts at 0; and increments every time a new type is created
     // it could be called nonce to signal that it doesn't have to increment: it could be random
-    uint256 typeCounter;
+    uint256 public typeCounter;
 
     // abridged from
     // https://github.com/enjin/erc-1155/blob/master/contracts/ERC1155NonFungibleMintable.sol
@@ -116,10 +124,6 @@ contract ERC1155Spike is Ownable{
         assets[_typeId].totalSupply = _totalSupply;
         assets[_typeId].currentIndex = _totalSupply;
         assetTypeList[typeCounter] = _typeId;
-    }
-
-    function getAssetName(uint256 _id) public view returns (string) {
-        return assets[_id].name;
     }
 
     /** @dev This function determines, given an input _id, whether that _id represents
@@ -220,6 +224,13 @@ contract ERC1155Spike is Ownable{
         }
     }
 
+    function canEquip(uint256 _toId, uint256 _id) public view returns (bool) {
+        return (classEquipmentSlots[typeIdFor(_toId)] & classEquipmentSlotType[typeIdFor(_id)]) > 0;
+    }
+
+    function isEquippable(uint256 _id) public view returns (bool) {
+        return classEquipmentSlots[typeIdFor(_id)] > 0;
+    }
 
     // NOTE this just does the top level children
     // to get further levels we need to build a parent relationship
@@ -243,17 +254,43 @@ contract ERC1155Spike is Ownable{
 
                 if (isNonFungible(childId)) {
                     require(!isLocked(childId));
+                    transferEquipment(_to, childId);
                 }
 
                 nfiOwners[childId] = _to;
 
-                assets[typeId].escrowBalances[msg.sender] = assets[typeId].escrowBalances[msg.sender].sub(count);
-                assets[typeId].escrowBalances[_to] = assets[typeId].escrowBalances[_to].add(count);
+                transferEscrowBalance(msg.sender, _to, typeId, count);
             }
             loop = false;
         }
     }
 
+    function transferEscrowBalance(address _from, address _to, uint256 _typeId, uint256 _value) internal {
+        assets[_typeId].escrowBalances[_from] = assets[_typeId].escrowBalances[_from].sub(_value);
+        assets[_typeId].escrowBalances[_to]   = assets[_typeId].escrowBalances[_to].add(_value);
+    }
+
+    function transferEquipment(address _to, uint256 _id) internal {
+        if (isEquippable(_id)) {
+            uint256 _equipId = nfiEquipment[_id][0];
+            uint256 _equipTypeId = typeIdFor(_equipId);
+
+            if (_equipId != 0) {
+                nfiOwners[_equipId] = _to;
+                transferEscrowBalance(msg.sender, _to, _equipTypeId, 1);
+            }
+
+            for (uint256 j = 0; (2**j) <= classEquipmentSlots[typeIdFor(_id)]; j++) {
+                _equipId = nfiEquipment[_id][2**j];
+                _equipTypeId = typeIdFor(_equipId);
+
+                if (_equipId != 0) {
+                    nfiOwners[_equipId] = _to;
+                    transferEscrowBalance(msg.sender, _to, _equipTypeId, 1);
+                }
+            }
+        }
+    }
 
     function transfer(address _to,
                       uint256[] _ids,
@@ -273,8 +310,8 @@ contract ERC1155Spike is Ownable{
 
             if (isNonFungible(_id)) {
                 require(_value == 1);
-                require(nfiOwners[_id] == msg.sender);
-                require(nfiEscrow[_id] == false);
+                require(compareOwner(_id, msg.sender));
+                require(!inEscrow(_id));
                 require(!isLocked(_id));
 
                 nfiOwners[_id] = _to;
@@ -285,33 +322,17 @@ contract ERC1155Spike is Ownable{
                     transferChildren(_to, _id);
                     // maybe put this in a require == true?
                 }
+
+                transferEquipment(_to, _id);
             } else {
                 require(assets[_typeId].balances[msg.sender] >= _value);
             }
-
 
             assets[_typeId].balances[msg.sender] = assets[_typeId].balances[msg.sender].sub(_value);
             assets[_typeId].balances[_to] = _value.add(assets[_typeId].balances[_to]);
 
             emit Transfer(msg.sender, _to, _id, _value);
         }
-    }
-
-    // returns the count of how many different asset classes in the contract
-    function getTypeCount()
-        public
-        view
-        returns(uint256)
-    {
-        return typeCounter;
-    }
-
-    function getAssetType(uint256 _typeIdx)
-        public
-        view
-        returns(uint256)
-    {
-        return assetTypeList[_typeIdx];
     }
 
     /**
@@ -400,7 +421,7 @@ contract ERC1155Spike is Ownable{
             // Require this is a non-fungible, not locked, & owned by sender
             require(isNonFungible(_ids[i]));
             require(!isLocked(_ids[i]));
-            require(nfiOwners[_ids[i]] == msg.sender);
+            require(compareOwner(_ids[i], msg.sender));
 
             // Put the non-fungible into escrow
             nfiLock[_ids[i]] = true;
@@ -421,12 +442,22 @@ contract ERC1155Spike is Ownable{
         }
     }
 
+    /*
     function ownerOf(uint256 _whichId)
         public
         view
         returns(address)
     {
         return nfiOwners[_whichId];
+    }
+    */
+
+    function compareOwner(uint256 _whichId, address _addr)
+        public
+        view
+        returns(bool)
+    {
+        return nfiOwners[_whichId] == _addr;
     }
 
     function inEscrow(uint256 _id)
@@ -438,6 +469,14 @@ contract ERC1155Spike is Ownable{
     }
 
     function isLocked(uint256 _id)
+        public
+        view
+        returns(bool)
+    {
+        return nfiLock[_id];
+    }
+
+    function isEquipment(uint256 _id)
         public
         view
         returns(bool)
