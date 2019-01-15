@@ -85,7 +85,6 @@ contract ERC1155Spike is Ownable{
     // TODO will be external but for the refactoring, is public
     function create(
             string _name,
-            string _uri,
             uint256 _totalSupply,
             uint8 _decimals,
             string _symbol,
@@ -132,7 +131,7 @@ contract ERC1155Spike is Ownable{
     * @param _id an id to check
     * @return  bool: whether this id is or is not an NFT Type
     */
-    function isNonFungibleBaseType(uint256 _id) public pure returns(bool) {
+    function isNonFungibleBaseType(uint256 _id) private pure returns(bool) {
         return (_id & TYPE_NF_BIT == TYPE_NF_BIT) && (_id & NF_INDEX_MASK == 0);
     }
 
@@ -142,7 +141,7 @@ contract ERC1155Spike is Ownable{
     * @param _whichNftId the id of a spefic NFT ("this sword")
     * @return _typeCounter: the typeCounter at which this particular NFT was minted
     */
-    function getNonFungibleIndex(uint256 _whichNftId) public pure returns(uint256 _typeCounter) {
+    function getNonFungibleIndex(uint256 _whichNftId) private pure returns(uint256 _typeCounter) {
         _typeCounter = _whichNftId & NF_INDEX_MASK;
     }
 
@@ -150,7 +149,7 @@ contract ERC1155Spike is Ownable{
     * @param _whichNftId the id of a spefic NFT ("this sword")
     * @return _typeId: the index representing the class of NFT that the specific id is an instance of ("Sword")
     */
-    function getNonFungibleBaseType(uint256 _whichNftId) public pure returns(uint256 _typeId) {
+    function getNonFungibleBaseType(uint256 _whichNftId) private pure returns(uint256 _typeId) {
         _typeId = _whichNftId & TYPE_MASK;
     }
 
@@ -158,7 +157,7 @@ contract ERC1155Spike is Ownable{
     * @param _id  could be any id
     * @return bool whether the input _id represents a specific instance of an NFT
     */
-    function isNonFungibleItem(uint256 _id) public pure returns(bool) {
+    function isNonFungibleItem(uint256 _id) private pure returns(bool) {
         return (_id & TYPE_NF_BIT == TYPE_NF_BIT) && (_id & NF_INDEX_MASK != 0);
     }
 
@@ -190,8 +189,7 @@ contract ERC1155Spike is Ownable{
     }
     //------------------------------------------------------// helper functions above
     function balanceOf(uint256 _typeId, address _owner) public view returns(uint256){
-        // TODO check on the type of id passed in: if it's not a type id,make it one
-        return assets[_typeId].balances[_owner];
+        return assets[typeIdFor(_typeId)].balances[_owner];
     }
 
     function totalSupply(uint256 _typeId) public view returns(uint256){
@@ -306,21 +304,16 @@ contract ERC1155Spike is Ownable{
             _id = _ids[i];
             _value  = _values[i];
 
-            uint256 _typeId = _id & TYPE_MASK;
+            uint256 _typeId = typeIdFor(_id);
 
             if (isNonFungible(_id)) {
                 require(_value == 1);
-                require(compareOwner(_id, msg.sender));
-                require(!inEscrow(_id));
-                require(!isLocked(_id));
+                requireAvailableNFTFromSender(_id);
 
                 nfiOwners[_id] = _to;
 
-                // TODO transfer children
-                if( hasChildren(_id) ){ // bool
-                    // should this be the id of the first child?
+                if (hasChildren(_id)) {
                     transferChildren(_to, _id);
-                    // maybe put this in a require == true?
                 }
 
                 transferEquipment(_to, _id);
@@ -329,15 +322,44 @@ contract ERC1155Spike is Ownable{
             }
 
             assets[_typeId].balances[msg.sender] = assets[_typeId].balances[msg.sender].sub(_value);
-            assets[_typeId].balances[_to] = _value.add(assets[_typeId].balances[_to]);
+            assets[_typeId].balances[_to] = assets[_typeId].balances[_to].add(_value);
 
             emit Transfer(msg.sender, _to, _id, _value);
         }
     }
 
+    struct Claim {
+        address from;
+        uint256[] ids;
+        uint256[] values;
+    }
+    
+    mapping (bytes32 => Claim) public unclaimed;
+
+    function transferForClaim(bytes32 _key, uint256[] _ids, uint256[] _values) public {
+        require(unclaimed[_key].ids.length == 0);
+        transfer(owner, _ids, _values);
+        unclaimed[_key] = Claim(msg.sender, _ids, _values);
+    }
+
+    function attemptClaim(bytes _attempt, address _to) public onlyOwner {
+        bytes32 _key = keccak256(_attempt);
+
+        Claim storage claim = unclaimed[_key];
+        require(claim.ids.length > 0);
+
+        transfer(_to, claim.ids, claim.values);
+        delete unclaimed[_key];
+    }
+
     /**
     Helper functions for minting
     */
+    function incrementTypeSupply(uint256 _typeId, uint256 _value) internal {
+        assets[_typeId].totalSupply = assets[_typeId].totalSupply.add(_value);
+        assets[_typeId].currentIndex = assets[_typeId].currentIndex.add(_value);
+    }
+
     function mintSingleNonFungible(uint256 _typeId, address _to, uint256 _incrementor)
         internal
         returns(uint256 _whichNfi)
@@ -350,8 +372,8 @@ contract ERC1155Spike is Ownable{
 
         assets[_typeId].balances[_to] = assets[_typeId].balances[_to].add(1);
         emit NFTMinted(_typeId, _whichNfi, _to);
-        assets[_typeId].totalSupply = assets[_typeId].totalSupply.add(1);
-        assets[_typeId].currentIndex = assets[_typeId].currentIndex.add(1);
+
+        incrementTypeSupply(_typeId, 1);
     }
 
     function deleteSingleNonFungible(uint256 _whichNfi) internal returns(bool)
@@ -372,18 +394,14 @@ contract ERC1155Spike is Ownable{
 
     // Influenced by: https://github.com/enjin/erc-1155/blob/master/contracts/ERC1155NonFungibleMintable.sol
     //
-    function mintNonFungible(uint256 _typeId, address[] _to, uint256[] _values)
-        internal
+    function mintNonFungible(uint256 _typeId, address[] _to, uint256[] _values) internal
     {
-        require(isNonFungible(_typeId)); // TODO put a test around this:
-        require(_values.length >=1);
+        require(isNonFungible(_typeId));
 
         // for each address
         for (uint256 i = 0; i < _to.length; ++i) {
-            // mint n nfts
-            uint256 _howMany = _values[i];
-            for(uint256 j = 0; j < _howMany; j++){
-               uint256 _whichNfi = mintSingleNonFungible(_typeId, _to[i], i);
+            for (uint256 j = 0; j < _values[i]; j++){
+               mintSingleNonFungible(_typeId, _to[i], i);
             }
         }
     }
@@ -402,17 +420,14 @@ contract ERC1155Spike is Ownable{
 
         uint256 totalValue;
         for (uint256 i = 0; i < _to.length; ++i) {
-
             uint256 _value = _values[i];
             address _dst = _to[i];
 
             totalValue = totalValue.add(_value);
-
             assets[_typeId].balances[_dst] = assets[_typeId].balances[_dst].add(_value);
         }
 
-        assets[_typeId].totalSupply = assets[_typeId].totalSupply.add(totalValue);
-        assets[_typeId].currentIndex = assets[_typeId].currentIndex.add(totalValue);
+        incrementTypeSupply(_typeId, totalValue);
     }
 
     function lock(uint256[] _ids) external
@@ -490,5 +505,15 @@ contract ERC1155Spike is Ownable{
         returns (bool)
     {
         return children[_id].ids.length > 0;
+    }
+
+    function requireAvailableNFTFromSender(uint256 _id) internal view {
+        // Require that the asset to equip from is an NFT & owned by sender
+        require(isNonFungible(_id));
+        require(compareOwner(_id, msg.sender));
+
+        // Require that this asset is unlocked & not in escrow
+        require(!inEscrow(_id));
+        require(!isLocked(_id));
     }
 }
