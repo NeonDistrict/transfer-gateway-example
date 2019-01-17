@@ -27,6 +27,14 @@ contract ERC1155Spike is Ownable{
     mapping (uint256 => uint256) public assetTypeList;
     // assetTypeIndex (0,1,2...n) to assetIndex (0,1,10000,10909)..
 
+    struct Claim {
+        address from;
+        uint256[] ids;
+        uint256[] values;
+    }
+    
+    mapping (bytes32 => Claim) public unclaimed;
+
     event assetClassCreated(string _name, uint256 _typeCounter, uint256 _typeId, bool _isNFI);
     event NFTMinted(uint256 _typeId, uint256 _whichNfi, address _to);
     event NFTDeleted(uint256 _typeId, uint256 _whichNfi, address _to);
@@ -38,8 +46,6 @@ contract ERC1155Spike is Ownable{
         string name;
         uint256 totalSupply;
         uint256 currentIndex;
-        uint8 decimals;
-        string symbol;
         mapping (address => uint256) balances; // owner => int
         mapping (address => uint256) escrowBalances; // owner => int
     }
@@ -83,16 +89,8 @@ contract ERC1155Spike is Ownable{
     // abridged from
     // https://github.com/enjin/erc-1155/blob/master/contracts/ERC1155NonFungibleMintable.sol
     // TODO will be external but for the refactoring, is public
-    function create(
-            string _name,
-            uint256 _totalSupply,
-            uint8 _decimals,
-            string _symbol,
-            bool _isNFI
-        )
-        public
-        onlyOwner
-        returns (uint256 _typeId)
+    function create(string _name, uint256 _totalSupply, bool _isNFI) 
+        public onlyOwner returns (uint256 _typeId)
     {
 
         // _typeId is a uint256 so this is shifting the typeCounter (which is 1,2,3,... n) 128 bits to the right
@@ -131,7 +129,7 @@ contract ERC1155Spike is Ownable{
     * @param _id an id to check
     * @return  bool: whether this id is or is not an NFT Type
     */
-    function isNonFungibleBaseType(uint256 _id) private pure returns(bool) {
+    function isNonFungibleBaseType(uint256 _id) public pure returns(bool) {
         return (_id & TYPE_NF_BIT == TYPE_NF_BIT) && (_id & NF_INDEX_MASK == 0);
     }
 
@@ -141,7 +139,7 @@ contract ERC1155Spike is Ownable{
     * @param _whichNftId the id of a spefic NFT ("this sword")
     * @return _typeCounter: the typeCounter at which this particular NFT was minted
     */
-    function getNonFungibleIndex(uint256 _whichNftId) private pure returns(uint256 _typeCounter) {
+    function getNonFungibleIndex(uint256 _whichNftId) public pure returns(uint256 _typeCounter) {
         _typeCounter = _whichNftId & NF_INDEX_MASK;
     }
 
@@ -149,7 +147,7 @@ contract ERC1155Spike is Ownable{
     * @param _whichNftId the id of a spefic NFT ("this sword")
     * @return _typeId: the index representing the class of NFT that the specific id is an instance of ("Sword")
     */
-    function getNonFungibleBaseType(uint256 _whichNftId) private pure returns(uint256 _typeId) {
+    function getNonFungibleBaseType(uint256 _whichNftId) public pure returns(uint256 _typeId) {
         _typeId = _whichNftId & TYPE_MASK;
     }
 
@@ -157,7 +155,7 @@ contract ERC1155Spike is Ownable{
     * @param _id  could be any id
     * @return bool whether the input _id represents a specific instance of an NFT
     */
-    function isNonFungibleItem(uint256 _id) private pure returns(bool) {
+    function isNonFungibleItem(uint256 _id) public pure returns(bool) {
         return (_id & TYPE_NF_BIT == TYPE_NF_BIT) && (_id & NF_INDEX_MASK != 0);
     }
 
@@ -268,6 +266,7 @@ contract ERC1155Spike is Ownable{
         assets[_typeId].escrowBalances[_to]   = assets[_typeId].escrowBalances[_to].add(_value);
     }
 
+    // NOTE: ASSUMES NFT EQUIPMENT
     function transferEquipment(address _to, uint256 _id) internal {
         if (isEquippable(_id)) {
             uint256 _equipId = nfiEquipment[_id][0];
@@ -327,14 +326,6 @@ contract ERC1155Spike is Ownable{
             emit Transfer(msg.sender, _to, _id, _value);
         }
     }
-
-    struct Claim {
-        address from;
-        uint256[] ids;
-        uint256[] values;
-    }
-    
-    mapping (bytes32 => Claim) public unclaimed;
 
     function transferForClaim(bytes32 _key, uint256[] _ids, uint256[] _values) public {
         require(unclaimed[_key].ids.length == 0);
