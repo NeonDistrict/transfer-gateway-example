@@ -24,8 +24,9 @@ contract ERC1155Spike is Ownable{
 
     mapping (uint256 => AssetClass) public assets;
     mapping (uint256 => Children) public children;
-    mapping (uint256 => uint256) public assetTypeList;
+
     // assetTypeIndex (0,1,2...n) to assetIndex (0,1,10000,10909)..
+    uint256[] public assetTypeList;
 
     struct Claim {
         address from;
@@ -120,7 +121,7 @@ contract ERC1155Spike is Ownable{
         assets[_typeId].name = _name;
         assets[_typeId].totalSupply = _totalSupply;
         assets[_typeId].currentIndex = _totalSupply;
-        assetTypeList[typeCounter] = _typeId;
+        assetTypeList.push(_typeId);
     }
 
     /** @dev This function determines, given an input _id, whether that _id represents
@@ -192,6 +193,10 @@ contract ERC1155Spike is Ownable{
 
     function totalSupply(uint256 _typeId) public view returns(uint256){
         return assets[_typeId].totalSupply;
+    }
+
+    function currentIndex(uint256 _typeId) public view returns(uint256){
+        return assets[_typeId].currentIndex;
     }
 
     // the reference implementation from:
@@ -506,5 +511,28 @@ contract ERC1155Spike is Ownable{
         // Require that this asset is unlocked & not in escrow
         require(!inEscrow(_id));
         require(!isLocked(_id));
+    }
+
+    function incrementBalanceFromEscrow(address _addr, uint256 _whichId, uint256 _value) internal
+    {
+        uint256 _typeId = typeIdFor(_whichId);
+        assets[_typeId].balances[_addr]       = assets[_typeId].balances[_addr].add(_value);
+        assets[_typeId].escrowBalances[_addr] = assets[_typeId].escrowBalances[_addr].sub(_value);
+    }
+
+    function decrementBalanceToEscrow(address _addr, uint256 _whichId, uint256 _value) internal
+    {
+        uint256 _typeId = typeIdFor(_whichId);
+        assets[_typeId].balances[_addr]       = assets[_typeId].balances[_addr].sub(_value);
+        assets[_typeId].escrowBalances[_addr] = assets[_typeId].escrowBalances[_addr].add(_value);
+    }
+
+    function associateChild(address _addr, uint256 _parentId, uint256 _childId, uint256 _value) internal {
+        nfiEscrow[_childId] = true;
+
+        decrementBalanceToEscrow(_addr, _childId, _value);
+
+        children[_parentId].ids.push(_childId);
+        children[_parentId].countEscrowed.push(_value);
     }
 }
